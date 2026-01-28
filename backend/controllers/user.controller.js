@@ -3,15 +3,16 @@ const ApiKey = require("../model/user.model.js");
 const createApiKey = async (req, res) => {
   try {
     const { user_id, plan,api_keyy } = req.body;
+    console.log("api keyy",api_keyy)
 
     if (!user_id) {
       return res.status(400).json({ message: "user_id is required" });
     }
 
-    // 🔐 Generate API key server-side
+    
     const api_key = api_keyy
 
-    // 📊 Plan-based token limits (schema compliant)
+    
     const PLAN_LIMITS = {
       free: 10000,
       pro: 100000,

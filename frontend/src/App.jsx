@@ -38,7 +38,8 @@ import { useContext } from "react";
 import LoginPage from "./LoginPage";
 const APP_NAME = "AlloyDocs";
 const API_BASE_URL = "http://127.0.0.1:5000";
-
+const API_BASE_URL_nodejs = "http://127.0.0.1:5001";
+let globalapikey=null
 const toolCategories = [
   {
     title: "PDF Tools",
@@ -457,34 +458,42 @@ const DocsPage = () => {
     
     // Simulate key generation
     const generateKey = () => {
-       // Simulate API call
-        fetch("http://127.0.0.1:5000/generate_apikey", {
-            method: "POST",
-        })  
-        .then(res => res.json())
-        .then(data => {
-            console.log("dataaaaaaaaaaaaaaaaaaaaaaaa apiiiiiiiiiiiiii",data);
-            setApiKey(data.api_key);
-            setKeyRevealed(true);
-        })
-        fetch("http://localhost:5001/user/create-api-key", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              user_id: user.uid,
-                api_keyy: apiKey,
-            }),
-        })
-        .then(res => res.json())
-        .then(data => {
-          console.log("dtaaaaaaaaaaaaaaaaaaaaaaaa",data);
-            if (data.message === "API key created successfully") {
-                setKeyRevealed(true);
-            }
-        })
-    };
+  
+  fetch("http://127.0.0.1:5000/generate_apikey", {
+    method: "POST",
+  })
+    .then(res => res.json())
+    .then(data => {
+      console.log("Python API key:", data.api_key);
+
+      const generatedKey = data.api_key;
+      globalapikey=data.api_key 
+
+      
+      setApiKey(generatedKey);
+      setKeyRevealed(true);
+
+      
+      return fetch("http://localhost:5001/user/create-api-key", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user.uid,
+          api_keyy: generatedKey,
+        }),
+      });
+    })
+    .then(res => res.json())
+    .then(data => {
+      console.log("Stored in DB:", data);
+    })
+    .catch(err => {
+      console.error("Error generating API key:", err);
+    });
+};
+
 
     const copyKey = () => {
         navigator.clipboard.writeText(apiKey);
@@ -775,7 +784,20 @@ const ToolPage = () => {
         body: fd 
       });
 
+      const res_nodejs = await fetch(`${API_BASE_URL_nodejs}/${tool.basename}/${tool.reqname}`, { 
+        method: "POST", 
+        headers:{
+          "x-api-key":globalapikey
+
+
+        },
+        body: fd 
+      });
+
       if (!res.ok) throw new Error("Processing failed");
+      if (!res_nodejs) throw new Error("node js failed")
+
+      console.log("node js responseeeeeeeeee",res_nodejs)
 
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
