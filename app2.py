@@ -42,6 +42,9 @@ CORS(app)
 
 
 
+@app.route("/health", methods=["GET"])
+def health():
+    return "ok", 200
 
 def save_file(file):
     filename = secure_filename(file.filename)
