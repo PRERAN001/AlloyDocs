@@ -14,6 +14,8 @@ from PIL import Image
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["ORT_LOG_SEVERITY_LEVEL"] = "3"
+
 
 from rembg import remove
 
@@ -317,4 +319,6 @@ def excel_to_csv():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
+
