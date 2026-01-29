@@ -39,7 +39,6 @@ import LoginPage from "./LoginPage";
 const APP_NAME = "AlloyDocs";
 const API_BASE_URL = "http://127.0.0.1:5000";
 const API_BASE_URL_nodejs = "http://127.0.0.1:5001";
-let globalapikey=null
 const toolCategories = [
   {
     title: "PDF Tools",
@@ -191,14 +190,7 @@ const Navbar = () => {
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
-  const{user}=useContext(UserContext)
-  console.log(user)
-
-
-  // FIX 1: Define a user state (Set to null to see "Log in" button, or an object to see Avatar)
-  // In a real app, this comes from your Auth Context
-
-  // const user = null; // Uncomment this line to test the "Logged Out" state
+  const { user, logout } = useContext(UserContext);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -210,6 +202,11 @@ const Navbar = () => {
     setIsToolsOpen(false);
     setIsMobileMenuOpen(false);
     navigate(`/tool/${toolId}`);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
   };
 
   return (
@@ -268,10 +265,10 @@ const Navbar = () => {
 
           {user ? (
             // LOGGED IN STATE
-            <div className="flex items-center gap-3 pl-2">
+            <div className="flex items-center gap-3 pl-2 group relative">
               <div className="flex flex-col items-end mr-2">
                 <span className="text-sm font-bold text-slate-700 leading-none">
-                  {user.displayName}
+                  {user.displayName || "User"}
                 </span>
                 <span className="text-[10px] font-medium text-slate-400">
                   Pro Plan
@@ -279,15 +276,25 @@ const Navbar = () => {
               </div>
               
               {/* User Avatar Circle */}
-              <div className="relative w-10 h-10 rounded-full ring-2 ring-white shadow-md cursor-pointer hover:ring-blue-200 transition-all duration-300 group">
+              <div className="relative w-10 h-10 rounded-full ring-2 ring-white shadow-md cursor-pointer hover:ring-blue-200 transition-all duration-300">
                 <div className="w-full h-full rounded-full overflow-hidden">
                   <img
-                    src={user.photoURL}
+                    src={user.photoURL || "https://via.placeholder.com/40"}
                     alt="User Profile"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+              </div>
+
+              {/* Logout Dropdown */}
+              <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg hidden group-hover:block z-50">
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-3 text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-50 text-left rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <span>Logout</span>
+                </button>
               </div>
             </div>
           ) : (
@@ -451,54 +458,72 @@ const Navbar = () => {
 
 const DocsPage = () => {
     const [activeSection, setActiveSection] = useState("getting-started");
-    const [apiKey, setApiKey] = useState("ad_live_xxxxxxxxxxxxxxxxxxxx");
+    const [apiKey, setApiKey] = useState(null);
     const [keyRevealed, setKeyRevealed] = useState(false);
     const [copied, setCopied] = useState(false);
-    const {user} = useContext(UserContext);
+    const [loading, setLoading] = useState(false);
+    const { user, setApiKey: setContextApiKey } = useContext(UserContext);
     
-    // Simulate key generation
-    const generateKey = () => {
-  
-  fetch("http://127.0.0.1:5000/generate_apikey", {
-    method: "POST",
-  })
-    .then(res => res.json())
-    .then(data => {
-      console.log("Python API key:", data.api_key);
+    // Load API key from context on mount
+    useEffect(() => {
+      const storedKey = localStorage.getItem("apiKey");
+      if (storedKey) {
+        setApiKey(storedKey);
+      }
+    }, []);
 
-      const generatedKey = data.api_key;
-      globalapikey=data.api_key 
+    // Generate and store API key
+    const generateKey = async () => {
+      if (!user) {
+        alert("Please login first to generate an API key.");
+        return;
+      }
 
-      
-      setApiKey(generatedKey);
-      setKeyRevealed(true);
+      setLoading(true);
+      try {
+        // Step 1: Get API key from Python backend
+        const pythonRes = await fetch("http://127.0.0.1:5000/generate_apikey", {
+          method: "POST",
+        });
+        const pythonData = await pythonRes.json();
+        const generatedKey = pythonData.api_key;
 
-      
-      return fetch("http://localhost:5001/user/create-api-key", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_id: user.uid,
-          api_keyy: generatedKey,
-        }),
-      });
-    })
-    .then(res => res.json())
-    .then(data => {
-      console.log("Stored in DB:", data);
-    })
-    .catch(err => {
-      console.error("Error generating API key:", err);
-    });
-};
+        // Step 2: Store in Node.js database and get confirmation
+        const nodeRes = await fetch("http://localhost:5001/user/create-api-key", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id: user.uid,
+            api_keyy: generatedKey,
+          }),
+        });
+        
+        if (!nodeRes.ok) throw new Error("Failed to store API key");
+        
+        const nodeData = await nodeRes.json();
+        console.log("API Key stored in DB:", nodeData);
 
+        // Step 3: Update state and localStorage
+        setApiKey(generatedKey);
+        setContextApiKey(generatedKey);
+        setKeyRevealed(true);
+        
+      } catch (err) {
+        console.error("Error generating API key:", err);
+        alert("Failed to generate API key. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
     const copyKey = () => {
-        navigator.clipboard.writeText(apiKey);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        if (apiKey) {
+          navigator.clipboard.writeText(apiKey);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }
     };
 
     const scrollToSection = (id) => {
@@ -567,24 +592,29 @@ const DocsPage = () => {
                         
                         <div className="bg-slate-900 rounded-xl p-1 pl-4 flex items-center justify-between border border-slate-700 shadow-inner">
                             <code className="font-mono text-green-400 text-sm md:text-base">
-                                {keyRevealed ? apiKey : "ad_live_************************"}
+                                {keyRevealed && apiKey ? apiKey : "ad_live_************************"}
                             </code>
                             <div className="flex gap-1">
                                 <button 
                                     onClick={generateKey}
-                                    className="px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                    disabled={loading || !user}
+                                    className="px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {keyRevealed ? "Regenerate" : "Reveal Key"}
+                                    {loading ? "Generating..." : keyRevealed ? "Regenerate" : "Generate Key"}
                                 </button>
                                 <button 
                                     onClick={copyKey}
-                                    className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                    disabled={!apiKey}
+                                    className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Copy Key"
                                 >
                                     {copied ? <Check size={18} className="text-green-400"/> : <Copy size={18}/>}
                                 </button>
                             </div>
                         </div>
+                        {!user && (
+                          <p className="text-xs text-amber-600 mt-3">📌 Please log in to generate an API key.</p>
+                        )}
                     </div>
 
                     {/* Documentation Content */}
@@ -712,12 +742,14 @@ const ToolPage = () => {
   const fileRef = useRef(null);
   const watermarkRef = useRef(null);
   const audioRef = useRef(null);
+  const { apiKey } = useContext(UserContext);
 
   const [tool, setTool] = useState(null);
   const [preview, setPreview] = useState(null);
   const [fileType, setFileType] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState("Select File");
+  const [blobUrl, setBlobUrl] = useState(null);
 
   // shared states
   const [start, setStart] = useState("");
@@ -736,6 +768,15 @@ const ToolPage = () => {
     }
   }, [id]);
 
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [blobUrl]);
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       setFileName(e.target.files.length > 1 ? `${e.target.files.length} files selected` : e.target.files[0].name);
@@ -745,6 +786,10 @@ const ToolPage = () => {
   const handleProcess = async () => {
     const files = fileRef.current.files;
     if (!files.length) return alert("Please select a file to continue.");
+
+    if (!apiKey) {
+      return alert("Please generate an API key first in the Developers API section.");
+    }
 
     setLoading(true);
     setPreview(null);
@@ -779,38 +824,39 @@ const ToolPage = () => {
         fd.append("end", end);
       }
 
-      const res = await fetch(`${API_BASE_URL}/${tool.basename}/${tool.reqname}`, { 
+      // Get response from Node.js with API key
+      console.log(`full request url -->${API_BASE_URL_nodejs}/${tool.basename}/${tool.reqname}`)
+      const nodeRes = await fetch(`${API_BASE_URL_nodejs}/${tool.basename}/${tool.reqname}`, { 
         method: "POST", 
-        body: fd 
-      });
-
-      const res_nodejs = await fetch(`${API_BASE_URL_nodejs}/${tool.basename}/${tool.reqname}`, { 
-        method: "POST", 
-        headers:{
-          "x-api-key":globalapikey
-
-
+        headers: {
+          "x-api-key": apiKey
         },
         body: fd 
       });
 
-      if (!res.ok) throw new Error("Processing failed");
-      if (!res_nodejs) throw new Error("node js failed")
+      if (!nodeRes.ok) throw new Error("Node.js processing failed");
 
-      console.log("node js responseeeeeeeeee",res_nodejs)
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      
+      const blob = await nodeRes.blob();
+      const contentType = nodeRes.headers.get("Content-Type") || "application/octet-stream";
+      
+      
+      const typedBlob = new Blob([blob], { type: contentType });
+      const url = URL.createObjectURL(typedBlob);
+      
       setPreview(url);
+      setBlobUrl(url);
 
-      if (blob.type.includes("pdf")) setFileType("pdf");
-      else if (blob.type.startsWith("image")) setFileType("image");
-      else if (blob.type.startsWith("video")) setFileType("video");
-      else if (blob.type.startsWith("audio")) setFileType("audio");
+      // Determine file type
+      if (contentType.includes("pdf")) setFileType("pdf");
+      else if (contentType.startsWith("image")) setFileType("image");
+      else if (contentType.startsWith("video")) setFileType("video");
+      else if (contentType.startsWith("audio")) setFileType("audio");
       else setFileType("other");
 
     } catch (err) {
-      alert("Something went wrong. Please try again.");
+      console.error("Processing error:", err);
+      alert("Something went wrong. Please try again. " + err.message);
     } finally {
       setLoading(false);
     }

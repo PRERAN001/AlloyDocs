@@ -1,18 +1,23 @@
 import os
 import subprocess
-import zipfile
 from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import secrets
+
 from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 
 from PIL import Image
+
+
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+os.environ["OMP_NUM_THREADS"] = "1"
+
 from rembg import remove
 
-from moviepy import (
+from moviepy.editor import (
     VideoFileClip,
     AudioFileClip,
     concatenate_videoclips
@@ -22,7 +27,8 @@ from pydub import AudioSegment
 import pandas as pd
 
 
-SOFFICE = r"C:\Program Files\LibreOffice\program\soffice.exe"
+SOFFICE = os.getenv("SOFFICE_PATH", "soffice")
+
 INPUT_DIR = "input"
 OUTPUT_DIR = "output"
 
@@ -33,15 +39,19 @@ app = Flask(__name__)
 CORS(app)
 
 
+
+
 def save_file(file):
     filename = secure_filename(file.filename)
     path = os.path.join(INPUT_DIR, filename)
     file.save(path)
     return path, filename
 
+
 @app.route("/generate_apikey", methods=["POST"])
 def generate_apikey():
-    return jsonify({"api_key": "ryzi7"+secrets.token_hex(16)})
+    return jsonify({"api_key": "ryzi7" + secrets.token_hex(16)})
+
 
 @app.route("/pdf/convert_word", methods=["POST"])
 def pdf_to_word():
@@ -81,8 +91,8 @@ def merge_pdf():
     for f in files:
         path, _ = save_file(f)
         reader = PdfReader(path)
-        for p in reader.pages:
-            writer.add_page(p)
+        for page in reader.pages:
+            writer.add_page(page)
 
     out = os.path.join(OUTPUT_DIR, "merged.pdf")
     with open(out, "wb") as fp:
@@ -101,8 +111,8 @@ def split_pdf():
     reader = PdfReader(path)
     writer = PdfWriter()
 
-    for p in reader.pages[start:end]:
-        writer.add_page(p)
+    for page in reader.pages[start:end]:
+        writer.add_page(page)
 
     out = os.path.join(OUTPUT_DIR, name.replace(".pdf", "_split.pdf"))
     with open(out, "wb") as fp:
@@ -140,9 +150,10 @@ def watermark_pdf():
     return send_file(out, as_attachment=True)
 
 
+# ------------------ IMAGE ------------------
 
 @app.route("/image/remove_bg", methods=["POST"])
-def remove_bg():
+def remove_bg_image():
     file = request.files["file"]
     path, name = save_file(file)
 
@@ -154,10 +165,12 @@ def remove_bg():
 
     return send_file(out, as_attachment=True)
 
+
 @app.route("/image/logo_watermark", methods=["POST"])
 def image_logo_watermark():
     file = request.files["file"]
     watermark = request.files["watermark"]
+
     scale = float(request.form.get("scale", 0.2))
     opacity = int(request.form.get("opacity", 180))
 
@@ -167,15 +180,11 @@ def image_logo_watermark():
     base = Image.open(base_path).convert("RGBA")
     wm = Image.open(wm_path).convert("RGBA")
 
-    
     wm_width = int(base.size[0] * scale)
     wm_height = int((wm_width / wm.size[0]) * wm.size[1])
     wm = wm.resize((wm_width, wm_height))
-
-    
     wm.putalpha(opacity)
 
-    
     position = (
         base.size[0] - wm.size[0] - 20,
         base.size[1] - wm.size[1] - 20
@@ -185,7 +194,6 @@ def image_logo_watermark():
     layer.paste(wm, position, wm)
 
     final = Image.alpha_composite(base, layer)
-
     out = os.path.join(OUTPUT_DIR, "watermarked_" + base_name)
     final.convert("RGB").save(out)
 
@@ -215,10 +223,16 @@ def trim_video():
     end = float(request.form["end"])
 
     path, name = save_file(file)
-    clip = VideoFileClip(path).subclip(start, end)
+    clip = VideoFileClip(path)
+
+    duration = clip.duration
+    start = max(0, start)
+    end = min(end, duration)
+
+    sub = clip.subclip(start, end)
 
     out = os.path.join(OUTPUT_DIR, "trimmed_" + name)
-    clip.write_videofile(out)
+    sub.write_videofile(out, codec="libx264", audio_codec="aac")
 
     return send_file(out, as_attachment=True)
 
@@ -234,9 +248,10 @@ def merge_video():
 
     final = concatenate_videoclips(clips)
     out = os.path.join(OUTPUT_DIR, "merged_video.mp4")
-    final.write_videofile(out)
+    final.write_videofile(out, codec="libx264", audio_codec="aac")
 
     return send_file(out, as_attachment=True)
+
 
 @app.route("/video/extract_audio", methods=["POST"])
 def extract_audio_from_video():
@@ -244,12 +259,7 @@ def extract_audio_from_video():
     path, name = save_file(file)
 
     clip = VideoFileClip(path)
-
-    out = os.path.join(
-        OUTPUT_DIR,
-        name.rsplit(".", 1)[0] + "_audio.mp3"
-    )
-
+    out = os.path.join(OUTPUT_DIR, name.rsplit(".", 1)[0] + "_audio.mp3")
     clip.audio.write_audiofile(out)
 
     return send_file(out, as_attachment=True)
@@ -268,9 +278,10 @@ def add_audio():
 
     final = vclip.set_audio(aclip)
     out = os.path.join(OUTPUT_DIR, "audio_" + vname)
-    final.write_videofile(out)
+    final.write_videofile(out, codec="libx264", audio_codec="aac")
 
     return send_file(out, as_attachment=True)
+
 
 
 @app.route("/audio/convert", methods=["POST"])
@@ -287,20 +298,6 @@ def convert_audio():
     return send_file(out, as_attachment=True)
 
 
-@app.route("/audio/trim", methods=["POST"])
-def trim_audio():
-    file = request.files["file"]
-    start = int(float(request.form["start"]) * 1000)
-    end = int(float(request.form["end"]) * 1000)
-
-    path, name = save_file(file)
-    audio = AudioSegment.from_file(path)[start:end]
-
-    out = os.path.join(OUTPUT_DIR, "trim_" + name)
-    audio.export(out, format=name.rsplit(".", 1)[1])
-
-    return send_file(out, as_attachment=True)
-
 
 
 @app.route("/excel/to_csv", methods=["POST"])
@@ -315,6 +312,7 @@ def excel_to_csv():
     df.to_csv(out, index=False)
 
     return send_file(out, as_attachment=True)
+
 
 
 

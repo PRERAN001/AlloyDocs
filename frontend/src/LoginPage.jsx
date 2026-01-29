@@ -5,25 +5,33 @@ import { auth, googleProvider } from "./firebase";
 import { signInWithPopup } from "firebase/auth";
 import { UserContext } from "./usercontext.jsx";
 import { useContext } from "react";
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const { setUser } = useContext(UserContext);
 
   const handleGoogleLogin = async () => {
-  try {
-    const result = await signInWithPopup(auth, googleProvider);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      
+      // Create user object with necessary fields
+      const userData = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL
+      };
+      
+      setUser(userData);
+      console.log("Logged in:", userData);
 
-    const user = result.user;
-    setUser(user);
-    console.log("Logged in:", user);
-
-    navigate("/");
-  } catch (error) {
-    console.error(error);
-    alert(error.message);
-  }
-};
-
+      navigate("/");
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+    }
+  };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 relative overflow-hidden">
@@ -85,4 +93,5 @@ const LoginPage = () => {
     </div>
   );
 };
+
 export default LoginPage;
