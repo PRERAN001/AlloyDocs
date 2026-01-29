@@ -489,14 +489,14 @@ const DocsPage = () => {
       setLoading(true);
       try {
         // Step 1: Get API key from Python backend
-        const pythonRes = await fetch("http://127.0.0.1:5000/generate_apikey", {
+        const pythonRes = await fetch("https://alloydocs-1.onrender.com/generate_apikey", {
           method: "POST",
         });
         const pythonData = await pythonRes.json();
         const generatedKey = pythonData.api_key;
 
         // Step 2: Store in Node.js database and get confirmation
-        const nodeRes = await fetch("http://localhost:5001/user/create-api-key", {
+        const nodeRes = await fetch("https://alloydocs.onrender.com/user/create-api-key", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
