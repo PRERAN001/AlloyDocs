@@ -26,7 +26,7 @@ app.use(cors({
 // Handle preflight requests
 app.use(cors())
 
-mongoose.connect("mongodb://localhost:27017/nothing").then(() => {
+mongoose.connect("mongodb+srv://preran248:preran123@cluster0.gqh6dfj.mongodb.net/?appName=Cluster0").then(() => {
   console.log("Connected to MongoDB");
 });
 app.get("/", (req, res) => {
