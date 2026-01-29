@@ -2,10 +2,10 @@ const express = require("express");
 const router = express.Router();
 const apiKeyMiddleware=require("../middleware/apiKeyAuth")
 const ApiKey = require("../model/user.model.js");    
-
+const python_utl=process.env.backendurl 
 router.post('/to_csv',apiKeyMiddleware,async(req,res)=>{
     try {
-        const python_utl="http://127.0.0.1:5000"    
+          
         await ApiKey.updateOne(
           { _id: req.apiKey._id },
           { $inc: { tokens_used: req.tokensToDeduct } }

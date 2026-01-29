@@ -36,9 +36,10 @@ import { UserContext } from "./usercontext.jsx";
 import { useContext } from "react";
 // --- Configuration & Data ---
 import LoginPage from "./LoginPage";
+import ProfileModal from "./ProfileModal";
 const APP_NAME = "AlloyDocs";
-const API_BASE_URL = "http://127.0.0.1:5000";
-const API_BASE_URL_nodejs = "http://127.0.0.1:5001";
+
+const API_BASE_URL_nodejs =import.meta.env.VITE_API_BASE_URL_nodejs
 const toolCategories = [
   {
     title: "PDF Tools",
@@ -98,7 +99,7 @@ const docSections = [
     title: "Getting Started",
     icon: <Globe size={18} />,
     content: [
-      { title: "Base URL", value: API_BASE_URL },
+      { title: "Base URL", value: API_BASE_URL_nodejs },
       { title: "Protocol", value: "HTTP POST only" },
       { title: "Content Type", value: "multipart/form-data" },
       { title: "Response", value: "Binary file (Content-Disposition: attachment) or JSON Error" },
@@ -189,8 +190,9 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, logout } = useContext(UserContext);
+  const { user, logout, apiKey } = useContext(UserContext);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -206,6 +208,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
+    setIsProfileModalOpen(false);
     navigate("/");
   };
 
@@ -275,27 +278,20 @@ const Navbar = () => {
                 </span>
               </div>
               
-              {/* User Avatar Circle */}
-              <div className="relative w-10 h-10 rounded-full ring-2 ring-white shadow-md cursor-pointer hover:ring-blue-200 transition-all duration-300">
+              {/* User Avatar Circle - Clickable for Profile */}
+              <button
+                onClick={() => setIsProfileModalOpen(true)}
+                className="relative w-10 h-10 rounded-full ring-2 ring-white shadow-md cursor-pointer hover:ring-blue-200 transition-all duration-300 flex-shrink-0"
+              >
                 <div className="w-full h-full rounded-full overflow-hidden">
                   <img
                     src={user.photoURL || "https://via.placeholder.com/40"}
                     alt="User Profile"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                   />
                 </div>
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-              </div>
-
-              {/* Logout Dropdown */}
-              <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg hidden group-hover:block z-50">
-                <button
-                  onClick={handleLogout}
-                  className="w-full px-4 py-3 text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-50 text-left rounded-lg transition-colors flex items-center gap-2"
-                >
-                  <span>Logout</span>
-                </button>
-              </div>
+              </button>
             </div>
           ) : (
             // LOGGED OUT STATE
@@ -452,7 +448,18 @@ const Navbar = () => {
           ))}
         </div>
       </div>
+      {isProfileModalOpen && user && (
+      <ProfileModal
+        user={user}
+        apiKey={apiKey}
+        onClose={() => setIsProfileModalOpen(false)}
+        onLogout={handleLogout}
+      />
+    )}
     </nav>
+    
+    
+    
   );
 };
 

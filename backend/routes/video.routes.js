@@ -2,10 +2,10 @@ const express = require("express");
 const router = express.Router();
 const apiKeyMiddleware=require("../middleware/apiKeyAuth")
 const ApiKey = require("../model/user.model.js");    
-
+const python_utl=process.env.backendurl 
 router.post('/trim',apiKeyMiddleware,async(req,res)=>{
     try {
-        const python_utl="http://127.0.0.1:5000"    
+            
         await ApiKey.updateOne(
           { _id: req.apiKey._id },
           { $inc: { tokens_used: req.tokensToDeduct } }
@@ -33,7 +33,7 @@ router.post('/trim',apiKeyMiddleware,async(req,res)=>{
 
 router.post('/merge',apiKeyMiddleware,async(req,res)=>{
     try {
-        const python_utl="http://127.0.0.1:5000"    
+           
         await ApiKey.updateOne(
           { _id: req.apiKey._id },
           { $inc: { tokens_used: req.tokensToDeduct } }
@@ -61,7 +61,7 @@ router.post('/merge',apiKeyMiddleware,async(req,res)=>{
 
 router.post('/extract_audio',apiKeyMiddleware,async(req,res)=>{
     try {
-        const python_utl="http://127.0.0.1:5000"    
+            
         await ApiKey.updateOne(
           { _id: req.apiKey._id },
           { $inc: { tokens_used: req.tokensToDeduct } }
@@ -89,7 +89,7 @@ router.post('/extract_audio',apiKeyMiddleware,async(req,res)=>{
 
 router.post('/add_audio',apiKeyMiddleware,async(req,res)=>{
     try {
-        const python_utl="http://127.0.0.1:5000"    
+            
         await ApiKey.updateOne(
           { _id: req.apiKey._id },
           { $inc: { tokens_used: req.tokensToDeduct } }

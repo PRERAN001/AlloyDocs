@@ -1,3 +1,6 @@
+const dotenv = require("dotenv");
+dotenv.config();
+
 const express = require("express");
 const mongoose = require("mongoose");
 const pdfroutes=require("./routes/pdf.routes.js")
@@ -8,7 +11,6 @@ const wordroutes=require("./routes/word.routes.js")
 const excelroutes=require("./routes/excel.routes.js")
 const cors = require("cors");    
 const app = express();
-
 // Middleware for parsing form data and JSON
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -23,6 +25,7 @@ app.use(cors({
 
 // Handle preflight requests
 app.use(cors())
+
 mongoose.connect("mongodb://localhost:27017/nothing").then(() => {
   console.log("Connected to MongoDB");
 });

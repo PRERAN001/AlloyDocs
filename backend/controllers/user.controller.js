@@ -70,4 +70,36 @@ const createApiKey = async (req, res) => {
   }
 };
 
-module.exports = { createApiKey };
+const getApiKey = async (req, res) => {
+  try {
+    const apiKeyFromHeader = req.headers["x-api-key"];
+
+    if (!apiKeyFromHeader) {
+      return res.status(401).json({ message: "API key is required in headers" });
+    }
+
+    // Find the API key record in database
+    const apiKeyDoc = await ApiKey.findOne({ api_key: apiKeyFromHeader });
+
+    if (!apiKeyDoc) {
+      return res.status(404).json({ message: "API key not found" });
+    }
+
+    return res.status(200).json({
+      message: "API key retrieved successfully",
+      apiKey: apiKeyDoc.api_key,
+      plan: apiKeyDoc.plan,
+      tokens_total: apiKeyDoc.tokens_total,
+      tokens_used: apiKeyDoc.tokens_used,
+      active: apiKeyDoc.active,
+      createdAt: apiKeyDoc.createdAt,
+      user_id: apiKeyDoc.user_id
+    });
+
+  } catch (error) {
+    console.error("Get API Key Error:", error);
+    return res.status(400).json({ message: error.message });
+  }
+};
+
+module.exports = { createApiKey, getApiKey };
