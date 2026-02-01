@@ -41,6 +41,9 @@ app = Flask(__name__)
 CORS(app)
 
 
+@app.route("/", methods=["GET"])
+def root():
+    return {"status": "running"}, 200
 
 @app.route("/health", methods=["GET"])
 def health():
