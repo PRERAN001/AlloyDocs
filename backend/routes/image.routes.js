@@ -3,7 +3,8 @@ const router = express.Router();
 const apiKeyMiddleware=require("../middleware/apiKeyAuth")
 const ApiKey = require("../model/user.model.js");    
 const python_utl=process.env.backendurl 
-router.post('/remove_gb',apiKeyMiddleware,async(req,res)=>{
+router.post('/remove_bg',apiKeyMiddleware,async(req,res)=>{
+    console.log("inside the remove bg")
     try {
           
         await ApiKey.updateOne(
@@ -11,12 +12,13 @@ router.post('/remove_gb',apiKeyMiddleware,async(req,res)=>{
           { $inc: { tokens_used: req.tokensToDeduct } }
         );
         
-        const response=await fetch(`${python_utl}/image/remove_gb`,{
+        const response=await fetch(`${python_utl}/image/remove_bg`,{
             method:"POST",
             headers: req.headers,
             body: req,
             duplex:"half"
         })
+        console.log("imge remove db ",response)
         
         if(response.status===200){
             const res_frontend=await response.arrayBuffer()

@@ -49,7 +49,7 @@ router.post('/convert_word',apiKeyMiddleware,async(req,res)=>{
         
         if(response.status===200){
             const res_frontend=await response.arrayBuffer()
-            res.set("Content-Type", "application/pdf");
+            res.set("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
             res.send(Buffer.from(res_frontend));
         } else {
             res.status(response.status).json({error: "Python backend error"});

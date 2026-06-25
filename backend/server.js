@@ -30,7 +30,7 @@ app.use(cors({
 
 app.use(cors())
 
-mongoose.connect("mongodb+srv://preran248:preran123@cluster0.gqh6dfj.mongodb.net/?appName=Cluster0").then(() => {
+mongoose.connect("mongodb://localhost:27017/alloydocs").then(() => {
   console.log("Connected to MongoDB");
 });
 app.get("/", (req, res) => {

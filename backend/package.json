@@ -14,6 +14,9 @@
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "ezymail": "^1.0.0",
+    "grepme-x": "^1.0.1",
+    "grepme-xx": "^1.0.1",
     "mongoose": "^9.1.5"
   }
 }

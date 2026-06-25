@@ -1,190 +1,178 @@
 import React, { useState, useEffect } from "react";
-import { X, Copy, Check, LogOut, Loader } from "lucide-react";
+import { X, Copy, Check, LogOut, Loader, KeyRound, Shield } from "lucide-react";
 
 const ProfileModal = ({ user, apiKey, onClose, onLogout }) => {
-  const [copied, setCopied] = useState(false);
-  const [loadingApiKey, setLoadingApiKey] = useState(false);
-  const [localApiKey, setLocalApiKey] = useState(apiKey);
+  const [copied,       setCopied]       = useState(false);
+  const [keyCopied,    setKeyCopied]    = useState(false);
+  const [loadingKey,   setLoadingKey]   = useState(false);
+  const [localApiKey,  setLocalApiKey]  = useState(apiKey);
 
-  useEffect(() => {
-    setLocalApiKey(apiKey);
-  }, [apiKey]);
+  useEffect(() => { setLocalApiKey(apiKey); }, [apiKey]);
 
   const fetchApiKey = async () => {
-    if (localApiKey) return; // Already have it
-    
-    setLoadingApiKey(true);
+    if (localApiKey) return;
+    setLoadingKey(true);
     try {
-      const response = await fetch("http://127.0.0.1:5001/user/get-api-key", {
+      const res = await fetch("http://127.0.0.1:5001/user/get-api-key", {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey
-        }
+        headers: { "Content-Type": "application/json", "x-api-key": apiKey },
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setLocalApiKey(data.apiKey);
-      } else {
-        alert("Failed to fetch API key");
-      }
-    } catch (error) {
-      console.error("Error fetching API key:", error);
-      alert("Error fetching API key");
-    } finally {
-      setLoadingApiKey(false);
-    }
+      if (res.ok) { const d = await res.json(); setLocalApiKey(d.apiKey); }
+      else alert("Couldn't load the API key.");
+    } catch { alert("Couldn't reach the server."); }
+    finally { setLoadingKey(false); }
   };
 
-  const copyToClipboard = (text) => {
+  const copy = (text, setter) => {
     navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setter(true);
+    setTimeout(() => setter(false), 2000);
   };
+
+  const memberSince = user?.metadata?.creationTime
+    ? new Date(user.metadata.creationTime).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+    : null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div
+        className="bg-[#111113] border border-[#1f1f23] rounded-[16px] shadow-2xl w-full max-w-sm flex flex-col overflow-hidden"
+        style={{ maxHeight: "90vh" }}
+      >
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 p-6 flex items-center justify-between text-white">
-          <h2 className="text-xl font-bold">Profile</h2>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1f1f23]">
+          <p className="text-[13px] font-bold text-zinc-200">Account</p>
           <button
             onClick={onClose}
-            className="hover:bg-white/20 p-1 rounded-lg transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-[6px] text-zinc-600 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
           >
-            <X size={24} />
+            <X size={15} />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Avatar */}
-          <div className="flex flex-col items-center">
-            <div className="w-24 h-24 rounded-full overflow-hidden ring-4 ring-blue-100 shadow-lg">
+        {/* Scrollable body */}
+        <div className="overflow-y-auto flex-1 p-5 space-y-5">
+
+          {/* Avatar + name */}
+          <div className="flex items-center gap-3.5">
+            <div className="relative flex-shrink-0">
               <img
-                src={user?.photoURL || "https://via.placeholder.com/96"}
-                alt="User Avatar"
-                className="w-full h-full object-cover"
+                src={user?.photoURL || "https://via.placeholder.com/48"}
+                alt={user?.displayName || "User"}
+                className="w-12 h-12 rounded-full object-cover ring-1 ring-white/10"
               />
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#111113]" />
             </div>
+            <div className="min-w-0">
+              <p className="text-[14px] font-bold text-white truncate">
+                {user?.displayName || "No name"}
+              </p>
+              <p className="text-[11px] text-zinc-600">
+                {memberSince ? `Joined ${memberSince}` : "Pro plan"}
+              </p>
+            </div>
+            <span className="ml-auto text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0"
+              style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.15)", color: "#22c55e" }}>
+              Pro
+            </span>
           </div>
 
-          {/* User Details */}
-          <div className="space-y-4">
-            {/* Display Name */}
-            <div className="bg-slate-50 p-4 rounded-xl">
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Display Name
-              </label>
-              <p className="text-slate-900 font-semibold mt-1">
-                {user?.displayName || "Not Set"}
-              </p>
-            </div>
+          {/* Divider */}
+          <div className="h-px bg-[#1f1f23]" />
 
-            {/* Email */}
-            <div className="bg-slate-50 p-4 rounded-xl">
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Email
-              </label>
-              <p className="text-slate-900 font-semibold mt-1 break-all">
-                {user?.email || "Not Set"}
-              </p>
-            </div>
-
-            {/* UID */}
-            <div className="bg-slate-50 p-4 rounded-xl">
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                User ID
-              </label>
-              <p className="text-slate-900 font-mono text-sm mt-1 break-all">
-                {user?.uid || "Not Set"}
-              </p>
-            </div>
-
-            {/* API Key */}
-            <div className="bg-slate-50 p-4 rounded-xl">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  API Key
-                </label>
-                {localApiKey && (
-                  <button
-                    onClick={() => copyToClipboard(localApiKey)}
-                    className="p-1 hover:bg-slate-200 rounded transition-colors"
-                    title="Copy to clipboard"
-                  >
-                    {copied ? (
-                      <Check size={16} className="text-green-600" />
-                    ) : (
-                      <Copy size={16} className="text-slate-600" />
-                    )}
-                  </button>
-                )}
-              </div>
-              {localApiKey ? (
-                <p className="text-slate-900 font-mono text-xs mt-1 break-all bg-white p-2 rounded border border-slate-200">
-                  {localApiKey}
-                </p>
-              ) : (
-                <button
-                  onClick={fetchApiKey}
-                  disabled={loadingApiKey}
-                  className="mt-2 w-full px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:bg-slate-400 flex items-center justify-center gap-2"
-                >
-                  {loadingApiKey ? (
-                    <>
-                      <Loader size={16} className="animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    "Load API Key"
-                  )}
-                </button>
-              )}
-            </div>
-
-            {/* Phone (if available) */}
+          {/* Fields */}
+          <div className="space-y-3">
+            <Row label="Email" value={user?.email}
+              onCopy={() => copy(user?.email, setCopied)} copied={copied} />
+            <Row label="User ID" value={user?.uid} mono
+              onCopy={() => copy(user?.uid, setCopied)} copied={copied} />
             {user?.phoneNumber && (
-              <div className="bg-slate-50 p-4 rounded-xl">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  Phone
-                </label>
-                <p className="text-slate-900 font-semibold mt-1">
-                  {user.phoneNumber}
-                </p>
-              </div>
+              <Row label="Phone" value={user.phoneNumber}
+                onCopy={() => copy(user.phoneNumber, setCopied)} copied={copied} />
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-[#1f1f23]" />
+
+          {/* API Key */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-1.5">
+              <Shield size={11} className="text-zinc-600" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">API Key</p>
+            </div>
+
+            {localApiKey ? (
+              <>
+                <div className="bg-[#0a0a0c] border border-[#1f1f23] rounded-[8px] px-3 py-2.5">
+                  <code className="font-mono text-[11px] text-green-400 break-all select-all">
+                    {localApiKey}
+                  </code>
+                </div>
+                <button
+                  onClick={() => copy(localApiKey, setKeyCopied)}
+                  className={`w-full py-2 rounded-[8px] text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-colors
+                    ${keyCopied
+                      ? "bg-green-950/40 text-green-400 border border-green-900/40"
+                      : "bg-white/[0.04] border border-[#27272a] text-zinc-300 hover:bg-white/[0.07] hover:text-white"
+                    }`}
+                >
+                  {keyCopied ? <><Check size={13}/> Copied!</> : <><Copy size={13}/> Copy key</>}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={fetchApiKey}
+                disabled={loadingKey}
+                className="w-full py-2 rounded-[8px] text-[12px] font-semibold border border-[#27272a] text-zinc-400
+                  hover:text-white hover:bg-white/[0.04] transition-colors flex items-center justify-center gap-1.5
+                  disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {loadingKey
+                  ? <><Loader size={13} className="animate-spin"/> Loading…</>
+                  : <><KeyRound size={13}/> Reveal API key</>
+                }
+              </button>
             )}
 
-            {/* Creation Date */}
-            <div className="bg-slate-50 p-4 rounded-xl">
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Member Since
-              </label>
-              <p className="text-slate-900 font-semibold mt-1">
-                {user?.metadata?.creationTime
-                  ? new Date(user.metadata.creationTime).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric"
-                    })
-                  : "Unknown"}
-              </p>
-            </div>
+            <p className="text-[10.5px] text-zinc-700 text-center">
+              Never share your key with anyone.
+            </p>
           </div>
+        </div>
 
-          {/* Logout Button */}
+        {/* Footer */}
+        <div className="border-t border-[#1f1f23] p-4">
           <button
             onClick={onLogout}
-            className="w-full px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 mt-6"
+            className="w-full py-2.5 rounded-[8px] text-[12px] font-bold text-red-400 border border-red-900/40
+              bg-red-950/20 hover:bg-red-950/40 hover:text-red-300 transition-colors flex items-center justify-center gap-1.5"
           >
-            <LogOut size={18} />
-            <span>Logout</span>
+            <LogOut size={13}/> Sign out
           </button>
         </div>
       </div>
     </div>
   );
 };
+
+const Row = ({ label, value, mono, onCopy, copied }) => (
+  <div className="bg-[#0d0d0f] border border-[#1f1f23] rounded-[8px] px-3 py-2.5 flex items-center gap-2">
+    <div className="flex-1 min-w-0">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-0.5">{label}</p>
+      <p className={`text-zinc-300 truncate ${mono ? "font-mono text-[11px]" : "text-[12.5px] font-medium"}`}>
+        {value || "—"}
+      </p>
+    </div>
+    {value && (
+      <button
+        onClick={onCopy}
+        className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-[6px] text-zinc-600 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
+      >
+        {copied ? <Check size={13} className="text-green-400"/> : <Copy size={13}/>}
+      </button>
+    )}
+  </div>
+);
 
 export default ProfileModal;

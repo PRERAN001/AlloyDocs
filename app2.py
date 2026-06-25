@@ -25,11 +25,17 @@ from moviepy.editor import (
     concatenate_videoclips
 )
 
+
+
 from pydub import AudioSegment
+from pydub.utils import which
+
+AudioSegment.converter = r"E:\ffmpeg\ffmpeg-2026-02-26-git-6695528af6-full_build\bin\ffmpeg.exe"
+AudioSegment.ffprobe   = r"E:\ffmpeg\ffmpeg-2026-02-26-git-6695528af6-full_build\bin\ffprobe.exe"
 import pandas as pd
 
 
-SOFFICE = os.getenv("SOFFICE_PATH", "soffice")
+SOFFICE = r"E:\libreoffice\program\soffice.exe"
 
 INPUT_DIR = "input"
 OUTPUT_DIR = "output"
@@ -139,7 +145,7 @@ def watermark_pdf():
     c.setFont("Helvetica-Bold", 40)
     c.setFillAlpha(0.2)
     c.rotate(45)
-    c.drawCentredString(300, 200, text)
+    c.drawCentredString(600, 100, text)
     c.save()
 
     path, name = save_file(file)
@@ -322,6 +328,7 @@ def excel_to_csv():
     return send_file(out, as_attachment=True)
 
 
-
+if __name__=="__main__":
+    app.run(debug=True,port=5000,host="0.0.0.0")
 
 
