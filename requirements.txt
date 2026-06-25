@@ -10,3 +10,4 @@ pydub
 pandas
 onnxruntime
 gunicorn
+PyPDF2

@@ -30,12 +30,25 @@ from moviepy.editor import (
 from pydub import AudioSegment
 from pydub.utils import which
 
-AudioSegment.converter = r"E:\ffmpeg\ffmpeg-2026-02-26-git-6695528af6-full_build\bin\ffmpeg.exe"
-AudioSegment.ffprobe   = r"E:\ffmpeg\ffmpeg-2026-02-26-git-6695528af6-full_build\bin\ffprobe.exe"
+# AudioSegment.converter = r"E:\ffmpeg\ffmpeg-2026-02-26-git-6695528af6-full_build\bin\ffmpeg.exe"
+# AudioSegment.ffprobe   = r"E:\ffmpeg\ffmpeg-2026-02-26-git-6695528af6-full_build\bin\ffprobe.exe"
 import pandas as pd
 
 
-SOFFICE = r"E:\libreoffice\program\soffice.exe"
+# SOFFICE = r"E:\libreoffice\program\soffice.exe"
+
+FFMPEG_PATH = os.getenv("FFMPEG_PATH") or which("ffmpeg")
+FFPROBE_PATH = os.getenv("FFPROBE_PATH") or which("ffprobe")
+SOFFICE = os.getenv("SOFFICE_PATH") or which("soffice") or "soffice"
+
+if FFMPEG_PATH:
+    AudioSegment.converter = FFMPEG_PATH
+if FFPROBE_PATH:
+    AudioSegment.ffprobe = FFPROBE_PATH
+
+print("FFMPEG_PATH =", FFMPEG_PATH)
+print("FFPROBE_PATH =", FFPROBE_PATH)
+print("SOFFICE =", SOFFICE)
 
 INPUT_DIR = "input"
 OUTPUT_DIR = "output"
