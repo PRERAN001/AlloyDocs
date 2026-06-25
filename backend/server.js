@@ -29,8 +29,8 @@ app.use(cors({
 
 
 app.use(cors())
-
-mongoose.connect("mongodb://localhost:27017/alloydocs").then(() => {
+let mongodburl=process.env.mongodburl
+mongoose.connect(mongodburl).then(() => {
   console.log("Connected to MongoDB");
 });
 app.get("/", (req, res) => {
